@@ -1,0 +1,346 @@
+What is range and how is it used?
+A. Generates a sequence of numbers
+B. No such thing
+C. Creates a loop
+D. Not in python
+Answer: A
+
+How is for (loops) commonly used with range?
+A. For loops iterate over sequences and range() provides a numerical sequence for it to loop over
+B. Not used together
+C. This would create an error
+D. Not in python
+Answer: A 
+
+What is *args and **kwargs used for?
+A. To pass positional arugments from tuples versus keyword arguments from dictionaries
+B. No use
+C. Gibberish
+D. Use for functions
+Answer: A
+
+What is bitwise used for?
+A. To manipulate bits directly
+B. To create bits
+C. No bit manipulation
+D. To change numbers
+Answer: A
+
+What does x+=e mean?
+A. Expression x + e is evaluated and the value is assigned to variable x
+B. Add x and e only
+C. Error
+D. Not in python
+Answer: A
+
+What is // in python?
+A. Floor division which rounds down
+B. No use
+C. Not in python
+D. Multiply
+Answer: A
+
+What is ** in python?
+A. Exponent
+B. No use
+C. Not in python
+D. Multiply
+Answer: A
+
+What is % in python?
+A. Remainder after division
+B. No use
+C. Find percentage
+D. Not in python
+Answer: A
+
+What does "assert" do?
+A. Check conditions during debugging
+B. Not a word in python
+C. To create an object
+D. To create a class
+Answer: A
+
+When to use return versus yield?
+A. Use return when a value is needed from a function ending and use yield when we want to suspend and resume a function
+B. Cant use interchangeably
+C. Not in python
+D. Only use return
+Answer: A
+
+What is "continue" used for?
+A. Skips the rest of the loop’s current iteration
+B. Skips all iterations
+C. Will keep running forever
+D. Starts and stops block by clicking continue
+Answer: A
+
+What is "while" used for?
+A. Executes as long as the condition is true
+B. Used to run a code block
+C. Will run a code when a condition is false
+D. Not in python
+Answer: A
+
+What is "for" used for?
+A. Iterates over sequences (loop)
+B. To create dictionaries
+C. Not in python
+D. To create dictionaries
+Answer: A
+
+What is "def" used for?
+A. Defines a function
+B. Defies the loop
+C. Defines a class
+D. Defines an attribute
+Answer: A
+
+What is "with" used for?
+A. Used for handling resources like files
+B. Use with ranges and loops to create conditions
+C. Used to meet conditions
+D. Not in python
+Answer: A
+
+What is "break" used for?
+A. Exits the loop prematurely
+B. Breaks the code
+C. Breaks the computer
+D. Not in python
+Answer: A
+
+What is the basic logic behind finding a prime number in python?
+A. A prime number is only divisible by one and itself
+B. Prime is all even numbers
+C. Prime is all odd numbers
+D. Prime is a primary number
+Answer: A
+
+What can you do with a file in terms of using an argument when opening a file?
+A. Read
+B. Write
+C. Append
+D. All
+Answer: D
+
+What are the most common types of functions?
+A. Built-in functions
+B. User-defined functions
+C. Lambda functions
+D. All
+Answer: D
+
+How to define a class in python?
+A. Use__init__
+B. Use def "class"
+C. Use "create class"
+D. No class
+Answer: A
+
+How can we make changes to an attribute after defining it?
+A. By using the class name with the attribute name to make a change
+B. Cannot make changes
+C. By rewriting the class and adding in the attribute
+D. Not in python
+Answer: A
+
+How to define string?
+A. Using single or double quoatation marks
+B. Using string
+C. No Definition needed
+D. Use a ruler
+Answer: A
+
+What do lists use?
+A. Curly braces
+B. Square brackets
+C. Quotation marks
+D. Variables
+Answer: A
+
+What do tuples use?
+A. Quoataion Marks
+B. Curly braces
+C. Square brackets
+D. Parentheses
+Answer: D
+
+What do sets use?
+A. Curly braces
+B. Square brackets
+C. Quoataion marks
+D. Single quoatation marks
+Answer: B
+
+What do dictionaries use?
+A. Curly braces with key and value
+B. Square brackets with key and value
+C. Quoataion marks with key and value
+D. Pages
+Answer: A
+
+How to create a function?
+A. Using def and return
+B. Using only return
+C. Using function
+D. Use def and continue 
+Answer: A
+
+What is lambda?
+A. Math operator
+B. Anonymous function
+C. Variable
+D. Change
+Answer: B
+
+Basic operation of files include?
+A. Create and Read
+B. Write and Append
+C. Expand
+D. All of the above
+Answer: D
+
+How create a new class?
+A. Use class
+B. def
+C. using only class
+D. using only def
+Answer: A
+
+What is property() used for?
+A. Make changes to an attribute like attach getter, setter, deleter functions to it, or use as a decorator like naming a method for an attribute
+B. To only store data
+C. Used for text files
+D. To create new properties
+Answer: A
+
+This project involves building a terminal-based self-test quiz application using Python, designed to run entirely within environments like VS Code or Jupyter Notebook—without relying on graphical user interfaces (GUIs). The quiz dynamically pulls questions from a text file, allowing users to customize the number of questions they wish to be quizzed on. Here's a breakdown of the core components and logic:
+Question Storage & Format
+- Questions are stored in a plain text file, each formatted consistently to include:
+- A question prompt
+- Four multiple-choice options labeled A to D, separated by commas
+- The correct answer on the line following the options
+- This structure ensures easy parsing and scalability for adding more questions.
+
+Functional Architecture
+The program is modular, built around four key functions that mirror object-oriented principles without using classes:
+
+load_questions()
+- Parses the text file line by line.
+- Extracts and organizes each question, its options, and the correct answer.
+- Stores this data in a dictionary for efficient access during the quiz.
+- ask_user_for_number(max_questions)
+- Prompts the user to input how many questions they want in their quiz.
+- Validates the input to ensure it does not exceed the number of available questions.
+
+run_quiz(selected_questions)
+- Randomly selects the specified number of questions using Pythons random module.
+- Presents each question to the user in the terminal.
+- Accepts user input (A to D) and tracks correct and incorrect responses.
+- Calculates the final score as a percentage based on the number of questions answered.
+- Stores incorrectly answered questions for review.
+
+main()
+- Serves as the entry point of the application.
+- Loads questions from the text file.
+- Calls the user input function to determine quiz length.
+- Randomly selects questions and initiates the quiz via run_quiz().
+
+Key Features & Goals
+- Randomization: Ensures a unique quiz experience each time.
+- Data Validation: Prevents invalid inputs and enforces logical constraints.
+- Score Calculation: Provides a weighted percentage based on user performance.
+- Feedback Loop: Displays incorrectly answered questions along with the correct answers for learning reinforcement.
+
+"""
+import random #import random module, don't need parts of it, just the whole module to randomly select questions
+
+def load_questions(filename): #def a function to load questions from a given filename
+    with open(filename, 'r') as file: #open the file in read mode ('r')
+            content = file.read().strip().split('\n\n') #within the content, strip any whitespace before and after, and split questions by double newlines
+
+    questions = [] #initialize an empty list for the questions to be stored
+    for block in content: #loop through each block of question text
+         lines = block.strip().split('\n') #Split each block into individual lines while stripping any whitespace as well 
+         if len(lines) >=6: #for data validation and control, skip any malformed lines that don't have six parts which include the question, four options from A-D, and the answer
+            try: #For data validation use a try-except statement 
+                question_text = lines[0] #take the first part of the line as the question_text
+                options = lines[1:5] #lines 1 through 4 are the options from A-D
+                correct = lines[5].replace("Answer: ", "").strip().upper() #Line 5 contains the correct answer and convert to uppercase
+                questions.append({ #Store the question as a dictionary with keys for question, options, and answer
+                    "question": question_text,
+                    "options": options,
+                    "answer": correct
+                }) 
+            except ValueError: #error handling for any incorrect data type expected for question, options, or answer
+                continue #if a wrong type is parsed through, skip that question
+    return questions #or else return the complete list of parsed questions
+
+def ask_user_for_number(max_questions): #create a function that will asks the users how many questions they want to include in their quiz
+    while True: #Keep asking until a valid answer is input
+        try: 
+            n = int(input(f"How many questions do you want to answer (1 to {max_questions})? ")) #Get answer and convert to integer
+            if 1 <= n <= max_questions: #Ensure the number is a within the valid range from 1 to the maximum amount of questions in the txt.file
+                return n #Return the randomly selected questions
+            else:
+                print(f"Please enter a number between 1 and {max_questions}.") #Handle error if input is out of range
+        except ValueError:
+            print("Invalid input, please enter a number.") #Handle error if input is not a number
+
+
+def run_quiz(questions): #modular logic to define the function that will run the quiz based on the random list of questions passed to it
+    score = 0 #initialize the user's score
+    incorrect = [] #create a list to store the incorrectly answered questions 
+
+    for i, q in enumerate(questions, 1): #loop through each question starting from 1
+        print(f"\nQuestion {i}: {q['question']}") #Print the question with the number
+        for option in q['options']: #Print all the options from A-D
+            print(option)
+
+        while True: #loop until a valid answer is input
+            user_ans = input("Your answer (A, B, C, D): ").strip().upper() #get users input and format to upper to match options format in txt.file
+            if user_ans in ['A', 'B', 'C', 'D']: #Check if the input is valid and an answer from A-D
+                break #break out of the loop and accept the answer
+            else:
+                print("Invalid input. Please only enter A, B, C, or D.") #prompt for the correct input
+    
+        if user_ans == q['answer']: #if the answer is correct
+            score += 1 #add one point to score
+        else:
+            incorrect.append({ #if the answer is wwrong, then add the question to the list of incorrect answers
+                'question': q['question'],
+                'options': q['options'],
+                'correct': q['answer'],
+                'your_answer': user_ans
+        })
+
+    percentage = (score / len(questions)) * 100 #Calculate score based on the amount of questions
+    print(f"\nYour Score: {score}/{len(questions)} ({percentage:}%)") #Display score
+
+    if incorrect: 
+        print("\nYou answered the following questions incorrectly:")
+        for item in incorrect: #loop throught he incorrect answers list
+            print(f"\nQuestion: {item['question']}") #print the questions
+            for opt in item['options']: #print the option from A-D
+                print(opt)
+            print(f"Your answer: {item['your_answer']}") #print the answer chosen
+            print(f"Correct answer: {item['correct']}") #print the correct answer
+    else:
+        print(f"Excellent! All answers were correct.") #If no incorrect answers, then print this statement
+
+def main(): 
+    filename = 'quiz.txt' #define the name of the text file containing the questions
+    all_questions = load_questions(filename) #load all the questions into the all_questions variable
+
+    if not all_questions: #if not valid question in the correct format are not detected, show error and exit the program
+        print("No questions found in this file.")
+        return
+
+    num = ask_user_for_number(len(all_questions)) #ask the user to input how many questions to include
+    selected_questions = random.sample(all_questions, num) #use random module to select questions based on the input above
+    run_quiz(selected_questions) #start quiz
+
+if __name__ == "__main__": #Only run when main() is called on
+    main()
+"""
