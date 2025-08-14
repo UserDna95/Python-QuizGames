@@ -81,18 +81,6 @@ Quiz Menu:
 - Print error message and continue loop.
 12. Ensure modularity by wrapping the terminal interface in a if __name__ == "__main__": block so it doesn't auto-run when imported.
 
-"""
-What it does: 
-
-The QuizItem class represents a single questions in a quiz. It stores the question text, a list of possible 
-answer choices, and the correct answer. It provides methods to display the question, modify its content,
-validate user responses, and optionally reveals the correct answer. 
-
-This class is designed to be a part of a larger quiz system where multiple QuizItem instances will form a complete
-quiz.
-
-"""
-
 class QuizItem:
     def __init__(self, question: str, choices: list[str], correct_answer: str):
         """
@@ -202,13 +190,6 @@ else:
     sample_quiz.show_answer = True #else if incorrect answer is given, then set the answer to show as True
     print("Correct answer was:", sample_quiz.reveal_answer()) #then reveal the answer 
 
-"""
-What it does: 
-
-Quiz class manages a collection of QuizItem objects to form a complete quiz. It allows users to add questions,
-view all quiz items, modify existing questions, and take the quiz via the terminal. 
-
-"""
 class Quiz:
     def __init__(self, title="Quiz"): #set the title to "Quiz" as a placeholder
         """ 
