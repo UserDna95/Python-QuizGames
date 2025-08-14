@@ -1,5 +1,5 @@
 # Python-QuizGames
-Different variations for deploying a simple quiz game in Python
+Different variations for building a simple quiz game in Python
 
 Project 1:
 
