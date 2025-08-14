@@ -1,3 +1,86 @@
+Interpretation
+The goal is to enhance the quiz system by integrating the QuizItem class into a broader Quiz class. This allows users to interact with multiple quiz items through a terminal interface. Users can:
+- Add quiz items
+- View quiz items (with or without answers)
+- Modify quiz items
+- Take the quiz
+- Exit the system
+This modular design makes the system extensible for future GUI or web-based applications.
+
+Analysis
+The QuizItem class encapsulates individual multiple-choice questions, each with its own methods for display, modification, and answer checking. The Quiz class builds on this by managing a collection of QuizItem objects. It provides higher-level functionality for quiz management and user interaction.
+The terminal interface acts as a simple command-line menu that guides users through quiz creation, editing, and participation. This structure ensures separation of concerns, making the code clean, maintainable, and scalable.
+
+Algorithm: 
+1. Define the class Quiz.
+2. Inside Quiz, define the constructor __init__(self, title):
+- Set self.title to the provided title.
+- Initialize self.items as an empty list to store QuizItem objects.
+3. Define add_quiz_item(self, question, choices, correct_answer):
+- Create a QuizItem using the provided parameters.
+- Append it to self.items.
+4. Define display_all_items(self, with_answers=False):
+- Loop through self.items using enumerate(start=1).
+- Print each question and its choices.
+- If with_answers is True, also print the correct answer.
+5. Define modify_quiz_item(self, index, new_question=None, new_choices=None, new_correct_answer=None):
+- Validate the index.
+- If valid:
+- Modify the question if new_question is provided.
+- Loop through new_choices and update each one using modify_choice.
+- Modify the correct answer if new_correct_answer is provided.
+- If invalid, raise an error or print a message.
+6. Define take_quiz(self):
+- Print the quiz title.
+- Initialize score = 0 and incorrect_items = [].
+- Loop through each QuizItem:
+- Display the question and choices.
+- Prompt the user for an answer.
+- Check correctness using answer_question.
+- If correct, increment score.
+- If incorrect, store the question, correct answer, and user answer in incorrect_items.
+- After the loop:
+- Calculate and print the score percentage.
+- If there are incorrect items, print a review section.
+Terminal Interface
+7. Define run_terminal_quiz() function.
+8. Inside it, create a Quiz object with the title "Python Basics Quiz".
+9. Start an infinite while True: loop to display the menu:
+Quiz Menu:
+1) Add a quiz item
+2) View all quiz items
+3) Modify quiz item
+4) Take the quiz
+5) Exit
+
+10. Prompt the user to select an option using input().
+11. Handle each option:
+- Option "1":
+- Prompt for question.
+- Initialize empty choices list.
+- Loop 4 times to collect choices.
+- Prompt for correct answer.
+- Add the item to the quiz using add_quiz_item.
+- Option "2":
+- Ask if the user wants to show answers (y/n).
+- Convert input to boolean.
+- Call display_all_items(with_answers).
+- Option "3":
+- Display all items.
+- Prompt for question number to modify.
+- Convert to zero-based index.
+- Prompt for new question or press Enter to skip.
+- Loop 4 times to collect new choices or skip.
+- Prompt for new correct answer or skip.
+- Call modify_quiz_item() with new inputs.
+- Option "4":
+- Call take_quiz().
+- Option "5":
+- Print exit message and break the loop.
+- Invalid input:
+- Print error message and continue loop.
+12. Ensure modularity by wrapping the terminal interface in a if __name__ == "__main__": block so it doesn't auto-run when imported.
+
 """
 What it does: 
 
