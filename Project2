@@ -1,0 +1,282 @@
+"""
+What it does: 
+
+The QuizItem class represents a single questions in a quiz. It stores the question text, a list of possible 
+answer choices, and the correct answer. It provides methods to display the question, modify its content,
+validate user responses, and optionally reveals the correct answer. 
+
+This class is designed to be a part of a larger quiz system where multiple QuizItem instances will form a complete
+quiz.
+
+"""
+
+class QuizItem:
+    def __init__(self, question: str, choices: list[str], correct_answer: str):
+        """
+        Constructors initializes a new QuizItem object.
+
+        The paramaters include:
+        question - text of the quiz question
+        choices - a list of choices in string format
+        correct_answer - correct answer which matches one of the choices 
+
+        Outputs: A QuizItem instance with given paramaters.
+
+        """
+
+        self.question = question
+        self.choices = choices
+        self.correct_answer = correct_answer
+        self.show_answer = False #controls the visibility of the correct answer, as of now the default is false
+
+    def display_question(self):
+        """
+        Outputs: Returns the question with its choices formatted for display including the question
+        and the numbered choices, this function requires that the question and choices are created 
+        as the input. 
+
+        """
+        display_text = f"{self.question}\n" #this variable will hold the question and print each one on its own line
+        for i, choice in enumerate(self.choices, start=1): #enumerate will count and loop through the choices for the question, where the first choice numbered 1
+            display_text += f"{i}. {choice}\n" #this will now attach the choices to the question text as well using i to define choice 1, choice 2, choice 3, choice 4
+        return display_text.strip() #strip will remove any trailing space in each new line from question to choices
+
+    def modify_question(self, new_question: str):
+        """
+        Modifies quiz question and updates the question text. The input requires a new question
+        and updates the question object to the new question. 
+        """
+        self.question = new_question #update the question text with a new question
+
+    def modify_choice(self, index: int, new_choice: str):
+        """
+        Modifies one of the choices by index, so the choices are labelled from 0-3 as 
+        0-a, 1-b, 2-c, 3-d. This allows us to input the index and update a specific choice
+        and will raise an IndexError if it is out of order, such as 4 or more or negative numbers.
+        """
+        if 0 <= index < len(self.choices): #if the index is greater than 0 and less than the choices
+            self.choices[index] = new_choice #this portion will modify a specific choice at a given index
+        else:
+            raise IndexError("Choice index out of range") #otherwise will raise an error
+
+    def modify_correct_answer(self, new_answer: str):
+        """
+        Modifies the correct answer by inputting a new correct answer and updating the correct answer
+        object, but if the new correct answer is not in the list of choices, then it will raise a 
+        ValueError.
+        """
+        if new_answer in self.choices: 
+            self.correct_answer = new_answer #if the new answer is listed in choices, then it will update the correct answer as well
+        else:
+            raise ValueError("Correct answer must be one of the choices")
+
+    def answer_question(self, user_answer: str) -> bool: 
+        """
+        Checks the user's answer against the correct answer while being cast-sensitive and returns
+        True if correct and False if incorrect. The input is the user_answer, and the output is a boolean datatype
+        of True or False.
+        """
+        return user_answer.strip().lower() == self.correct_answer.strip().lower() #compare the user answer to the correct answer while not being so sensitive to case and trim whitespace, returns as true or false
+
+    def reveal_answer(self) -> str: 
+        """
+        Returns the correct answer if show_answer is True, the output will be Answer Hidden if incorrect answer,
+        or the correct answer if answered right.
+        """
+
+        return self.correct_answer if self.show_answer else "Answer Hidden" #return the correct answer only if show_answer is True in the instance variables listed above, otherwise the answer remains hidden
+    
+
+    @staticmethod #Static methods let us run the quiz without having to define a parameter within it
+    def create_sample_quiz(): #create a function to run a sample quiz using the instance attributes above
+        question = input("Enter your question: ")
+
+        choices = [] #this will store the choices
+        num_choices = int(input("How many choices does your question have? ")) #this will allow the user to create their own index via how many choices they include
+        for i in range(num_choices): #use a loop to number the choices
+            choice = input(f"Enter choice {i + 1}: ").lower().strip() #each choice is numbered from 1 and onwards
+            choices.append(choice) #append to choices
+
+        while True: #start a while true loop to make sure the correct answer is within the choices
+            correct_answer = input("Enter the correct answer and it must match one of the choices: ").lower().strip() #this allows the input not to be case sensitive and strips whitespace
+            if correct_answer in choices: #if the correct answer is within choices then continue the loop
+                break #break the loop and go onto the next item
+            else:
+                print("Answer is not in choices, try again")
+            
+        return QuizItem(question, choices, correct_answer) #add to QuizItem class
+    
+sample_quiz = QuizItem.create_sample_quiz() #create a variable to pass the class through 
+print("\nQuiz question: ") #label the quiz
+print(sample_quiz.display_question()) #display the question 
+
+user_input = input("Your answer: ").lower().strip() #ask user to answer the question
+
+if sample_quiz.answer_question(user_input): #if the user answer is within the correct answer then print correct
+    print("Correct")
+else:
+    print("Incorrect")
+    sample_quiz.show_answer = True #else if incorrect answer is given, then set the answer to show as True
+    print("Correct answer was:", sample_quiz.reveal_answer()) #then reveal the answer 
+
+"""
+What it does: 
+
+Quiz class manages a collection of QuizItem objects to form a complete quiz. It allows users to add questions,
+view all quiz items, modify existing questions, and take the quiz via the terminal. 
+
+"""
+class Quiz:
+    def __init__(self, title="Quiz"): #set the title to "Quiz" as a placeholder
+        """ 
+        Initializes a new Quiz object with a title and empty list of quiz items where the title can be inputted and
+        the output is a Quiz instance. 
+        """
+
+        self.title = title #create an instance variable to hold the title of the quiz
+        self.items = [] #initialize an empty list to hold QuizItem class instance variables
+
+    def add_quiz_item(self, question, choices, correct_answer):
+        """ 
+        Add a new quiz item to the quiz.
+        It will require the question, list of choices, and the correct answer as the input.
+        It will output the question itself with the required inputs.
+        
+        """
+        item = QuizItem(question, choices, correct_answer)
+        self.items.append(item) #append the items from QuizItem into Quiz class
+
+
+    def display_all_items(self, with_answers=False): 
+        """ 
+        Displays all quiz items in the quiz
+        It will require the question, list of choices, and the correct answer as the input.
+        It will output the question itself with the following inputs to the terminal.
+        The with_answers paramater is set to false in order to hide the correct answer
+        
+        """
+        for index, item in enumerate(self.items, start=1): #loop through index of questions via items from QuizItem class, the starting item is numbered 1
+            print(f"\nQuestion {index}:") #This will print out the question and choices
+            print(item.display_question())
+            if with_answers:
+                print(f"Correct Answer: {item.correct_answer}") #If with_answers is set to True, it will print the correct answer as well
+
+    def modify_quiz_item(self, index, new_questions=None, new_choices=None, new_correct_answer=None):#set to None so that it can be filled with updated choices
+        """ 
+        Modifies an existing quiz item.
+        It will require the index of the item to modify, the new quesion, the new choices, and the new 
+        correct answer.
+        It will output the updated quiz question.
+        """
+        if 0 <= index < len(self.items): #check that the index is not negative and within the bounds of the items list
+            item = self.items[index] #if so, then retreieve the quiz item at the position in the list, and assign to variable item so it can be modified
+            if new_questions:
+                item.modify_question(new_questions) #set new question
+            if new_choices:
+                for i, choice in enumerate(new_choices):
+                    item.modify_choice(i, choice) #set new choices while using enumerate to loop and label each new one
+            if new_correct_answer:
+                item.modify_correct_answer(new_correct_answer) #set the new correct answer 
+        else:
+            print("Invalid index") #if the index is incorrect
+
+    def take_quiz(self):
+        """ 
+        Runs the quiz interactively within the terminal. 
+        It will require the user to input the answer to a question.
+        While the output will keep track of the score based on correct/incorrect answers and load the incorrect answers for review.
+        """
+
+        print(f"\nStarting Quiz: {self.title}") #This will default to the title we set before
+        score = 0 #initialize the score variable to 0
+        incorrect_items = [] #create a variable to store the list of incorrect questions
+
+        for i, item in enumerate(self.items, start=1): #once again loop through the items starting from 1 and display the question including the choices 
+            print(f"\nQ{i}:") #number the Question from 1
+            print(item.display_question())
+            answer = input("Your answer: ").strip() #take the answer from the user
+
+            if item.answer_question(answer):#if the user answer is the same as the correct answer
+                print("Correct!")
+                score += 1 #update score if correctly answered
+            else:
+                print(f"Incorrect. Correct answer: {item.correct_answer}") #display the correct answer
+                incorrect_items.append((item.question, item.correct_answer, answer)) #append the incorrectly answered question along with the choices, the correct answer, and user answer for review 
+        
+        total = len(self.items) #compute the total 
+        print(f"\nQuiz Completed. Your Score: {score}/{total} ({(score/total)*100: .1f}%)") #Then use a print statement to print the score based on the total to 1 decimal place
+
+        if incorrect_items: #display the incorrectly answered questions
+            print("\nReview of Incorrect Answers:")
+            for q, correct, given in incorrect_items: #start a for loop for the question looping through the answer given by the user and the correct answer
+                print(f"Q: {q}\nYour Answer: {given}\nCorrect Answer: {correct}\n") #print out the given answer and the correct answer for review
+
+#terminal_quiz_runner
+
+def run_terminal_quiz(): #create a function to hold and run the quiz
+    quiz = Quiz("Basic Quiz") #create a variable to store the class Quiz and now title the quiz as following 
+
+    """ 
+    Provides a command-line interface to create and take a quiz within the terminal.
+    The input requires the user to choose an option between 1-5 each one outputting a different way to manage
+    the Quiz system.
+    If the input is 1, then it will provide an input option to type in the question, the choices, and the correct answer to create a quiz item.
+    If the input is 2, then it will output all the quiz items (quiz questions) to the user and ask if they want items to show the correct answer and take a y/n answer and output all the existing questions.
+    If the input is 3, then it will display all the quiz items(questions/choices/correct answer), and ask for an input from the user
+    as to which question, choices, and correct answer needs to be modified and changed using index.
+    If the input is 4, then it will run the quiz by providing the question and waiting for the answer as an input.
+    If the input is 5, then it will exit the system with a final print statement. 
+    """
+
+    while True: #start a neverending loop 
+        print("\n Quiz Menu")
+        print("1. Add a quiz item")
+        print("2. View all quiz items")
+        print("3. Modify a quiz item")
+        print("4. Take the quiz")
+        print("5. Exit")
+
+        choice = input("Select an option: ") #take a choice from the user
+
+        if choice == "1":
+            q = input("Enter question: ") 
+            choices = [] #recreate the choices with an empty list here so that they can now be filled in 
+            for i in range(4): #in range of 4 means only 4 choices can provided 
+                choices.append(input(f"Enter choice {i+1}: ")) #number the choices
+            correct = input("Enter the correct answer: ") #this will lean on the previous code to make sure the correct answer is within the choices
+            quiz.add_quiz_item(q, choices, correct) #add all portions of the quiz item
+
+        elif choice == "2":
+            with_answers = input("Show correct answers? (y/n): ").lower() == 'y' #use "y" or "n" to ask user to reveal the correct answer or not
+            quiz.display_all_items(with_answers) #then based on that answer display the quiz items
+        
+        elif choice == "3":
+            quiz.display_all_items()
+            try: #start a try except block catch errors like invalid indexs or invalid inputs
+                index = int(input("Enter question number to modify: ")) - 1 #converts the question number to 0-based indexing to find the question in the list of questions
+                new_q = input("New question(press Enter to skip): ") #print a new question
+                new_choices = [] #reinitalize the list as new choices now and store as empty once again
+                for i in range(4): #once again only can hold 4 choices
+                    ch = input(f"New choice {i+1}  (press Enter to skip): ") #number the choices again based on input
+                    new_choices.append(ch if ch else None) #if the user presses Enter, then it will append None which means none of the choices have been changed
+                new_choices = [c if c else quiz.items[index].choices[i] for i, c in enumerate(new_choices)] #goes through the new choices, if the choice prior was None, it will keep the original choices, however if 1 or all 4 choices are changed it will update them
+                new_correct = input("New correct answer (press Enter to skip): ") #prompts user for a new correct answer, or if enter is pressed, it will keep the original correct answer
+                quiz.modify_quiz_item(index, new_questions=new_q or None, #if a new question is not provided, it will keep the original one 
+                                    new_choices=new_choices or None, #if new choices are provided it will change them, or retain the original onces
+                                    new_correct_answer=new_correct or None) #if new correct answer is provided it will change, or retain the original one
+                
+            except Exception as e:
+                print(f"Error: {e}") #handle any errors in terms of modifying choices
+
+        elif choice == "4":
+            quiz.take_quiz() #launch quiz
+        
+        elif choice == "5":
+            print("See you!") #exit system and end program
+            break
+
+        else:
+            print("Invalid choice") #handle any other choice outside of 1-5 like a different number or non-integer value
+
+if __name__ == "__main__": #only run the quiz when executed directly 
+    run_terminal_quiz()
