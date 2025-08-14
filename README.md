@@ -5,9 +5,10 @@ Project 1:
 A terminal-based quiz that reads a list of multiple-choice questions from a text file into a Python list
 
 Project 2:
+A terminal-based quiz using classes (OOB)
 
 Project 3:
+A GUI-based quiz with a timer
 
 Project 4:
-
-Project 5: 
+A GUI-based quiz with a timer that uses dataclasses 
