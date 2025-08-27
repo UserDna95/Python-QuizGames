@@ -8,5 +8,5 @@ Project 2:
 A terminal-based quiz using classes 
 
 Project 3:
-A GUI-based quiz with a timer (with and without dataclasses)
+A GUI-based quiz with a timer 
 
