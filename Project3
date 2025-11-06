@@ -1,4 +1,4 @@
-# Interpretation 
+Interpretation 
 The objective was to design and build a self-contained, GUI-based multiple choice quiz system using the tkinter module. 
 -The system needs to let a user create and manage multipe quizzes. 
 -Add, edit, delete quiz questions. 
@@ -8,7 +8,7 @@ The objective was to design and build a self-contained, GUI-based multiple choic
 
 The focus was on understanding object-oriented programming using encapsulation, and modularity, GUI designing, while effectively handling errors, and input validation. 
 
-# Requirements, Techniques, Algorithms
+Requirements, Techniques, Algorithms
 Timers
 Technique: timers with after() + after_cancel()
 Two types of timers are used in this system to track countdown that tick once per second and update the user interface:
@@ -106,7 +106,7 @@ Algorithm
 11) Create a finish logic as a single method which handles cancelling timers, computing the score, and showing the results
 12) For the ResultsWindow class, use ttk.Treeview of incorrect/skipped rows and the over score/percentage to create a tabular presentation of this information 
 
-# Modules, Classes, Functions
+Modules, Classes, Functions
 GUI System overview
 
 QuizApp (main window)
@@ -217,16 +217,6 @@ User Guide
 7) During the quiz, each question will appear one by one with the timers running. Click on the circle next to the correct answer and submit it, then click on next question to access the next question. If the per-question timer runs out, it will be recorded as skipped and inputs will be locked, so you must go to the next question. 
 8) Once a quiz is completed, a score and percentage are shown, including incorrect and skipped questions with their correct answers in a table format. 
 
-Reflection
-Main challenges were figuring out how to coordinate simultaneous timers and cancellation methods for them. But, using the after()/after_cancel() with _alive flag and a single finish() method prevented callback races and crashouts.
-
-Also, how to implement shuffling in a non-destructive way for the data led me to store the correct answer as an index instead of text, so mapping is not lost. This has now eliminated any edge cases with issues around whitespace/casing, and kept the correctedness under shuffling. Simultaneously, even understanding the importance of case sensitivity and exact matching when comparing choices and cthe orrect answer was a huge learning curve, especially since the answer is recorded using a Radio Button during the quiz. But, this taught me that the system under the hood needs to handle different cases even if the UI at the top does not. If in the future, I change this quiz to take text-input for correct answers, I am now fully covered to do so. 
-
-I had to tighten input validation through multiple reiterations, including auto-adjusting the timers to follow constraints instead of putting in a constraint (ie. min 30 secs for total_timer) and having no follow-up with it. 
-
-Overall, this system is robust based on the validation and error handling methods that I could think of, but it still has a lot of room for further improvements and logic-proofing. Another thing I will include in future reiterations is data persistence with JSON.
-
-
 """
 What it does: 
 GUI-based Quiz System that allows users to create, manage, preview, and take multiple-choice quizzes (option to shuffle questions/choices) with timing features
@@ -237,12 +227,12 @@ import tkinter as tk # tkinter for GUI components
 from tkinter import ttk, messagebox, simpledialog #tkinter widgets and dialogs
 import random #random for shuffling questions and choices
 
-# =============================================================================================================================================================================
-# CLASS: Quiz_item
-# Represents a single multiple-choice question with choices and correct answer stored as an index. 
-# Requires a question text, a minimum of 2 choices with a maximum of 4 choices, and a correct index (or correct text answer that matches one of the choices).
-# Setters validate updates, and the corrected answer is maintained by index or text.
-# =============================================================================================================================================================================
+=============================================================================================================================================================================
+CLASS: Quiz_item
+Represents a single multiple-choice question with choices and correct answer stored as an index. 
+Requires a question text, a minimum of 2 choices with a maximum of 4 choices, and a correct index (or correct text answer that matches one of the choices).
+Setters validate updates, and the corrected answer is maintained by index or text.
+=============================================================================================================================================================================
 class Quiz_item:
     def __init__(self, question, choices, correct):
         self.question = str(question).strip() #question text
@@ -310,11 +300,11 @@ class Quiz_item:
         """Return the correct answer text"""
         return self.choices[self.correct_index] #return the correct answer text
 
-# ==============================================================================================================================================
-# CLASS: Quiz 
-# Manages a collection of Quiz_item objects, with methods to add items, display them, calculate scores, and execute the quiz based on logic.
-# Scoring compares indices (not string alone) for robustness against case/spacing issues and shuffling. 
-# ==============================================================================================================================================
+==============================================================================================================================================
+CLASS: Quiz 
+Manages a collection of Quiz_item objects, with methods to add items, display them, calculate scores, and execute the quiz based on logic.
+Scoring compares indices (not string alone) for robustness against case/spacing issues and shuffling. 
+==============================================================================================================================================
 class Quiz:
     def __init__(self, title):
         self.title = str(title).strip() #quiz title
@@ -367,11 +357,11 @@ class Quiz:
         score, incorrect = self.calculate_score(selections) #calculate the score and incorrect answers
         return score, len(self.items), incorrect #return the score, total number of items, and incorrect answers
 
-# ===========================================================================================================================================
-# CLASS: QuizApp
-# Main application GUI using tkinter to manage, view, and take quizzes
-# Enforces: total_time ≥30 seconds and total_time ≥ per_question_time * number_of_questions by adjusting total_time and informs the user
-# ============================================================================================================================================                            
+===========================================================================================================================================
+CLASS: QuizApp
+Main application GUI using tkinter to manage, view, and take quizzes
+Enforces: total_time ≥30 seconds and total_time ≥ per_question_time * number_of_questions by adjusting total_time and informs the user
+============================================================================================================================================                            
 
 class QuizApp:
     def __init__(self, master): 
@@ -473,10 +463,10 @@ class QuizApp:
         
         QuizTakerWindow(self.master, quiz, total_time, per_q, shuffle_q, shuffle_c) #open the quiz taker window
 
-# =======================================================================================================
-# CLASS: QuizEditor
-# GUI for adding, editing, deleting, and previewing quiz questions (Quiz_items) within a selected quiz 
-# =======================================================================================================                            
+=======================================================================================================
+CLASS: QuizEditor
+GUI for adding, editing, deleting, and previewing quiz questions (Quiz_items) within a selected quiz 
+=======================================================================================================                            
 
 class QuizEditor:
     def __init__(self, master, quiz): #initialize the quiz editor window
@@ -525,11 +515,11 @@ class QuizEditor:
         del self.quiz.items[sel[0]] #delete the selected quiz item from the quiz
         self.reload() #reload the quiz items in the listbox
 
-# ========================================================================================================
-# CLASS: QuizItemDialog
-# Dialog window for adding or editing a quiz question
-# Validates non empty questions, 2-4 unique choices, and correct answer matching one of the choices
-# ========================================================================================================  
+========================================================================================================
+CLASS: QuizItemDialog
+Dialog window for adding or editing a quiz question
+Validates non empty questions, 2-4 unique choices, and correct answer matching one of the choices
+========================================================================================================  
 
 class QuizItemDialog:
     def __init__(self, master, quiz, editor, index=None): #initialize the quiz item dialog window
@@ -595,10 +585,10 @@ class QuizItemDialog:
         self.editor.reload() #reload the quiz items in the editor
         self.top.destroy() #reload the quiz items in the editor and close the dialog
 
-# ==============================================================================================
-# CLASS: PreviewWindow
-# GUI for previewing quiz questions, choices, and correct answer in a table using ttk.Treeview
-# ==============================================================================================
+==============================================================================================
+CLASS: PreviewWindow
+GUI for previewing quiz questions, choices, and correct answer in a table using ttk.Treeview
+==============================================================================================
 
 class PreviewWindow:
     def __init__(self, master, quiz): #initialize the preview window
@@ -621,13 +611,13 @@ class PreviewWindow:
         tk.Button(self.top, text="Close", command=self.top.destroy).pack(pady=(0, 10)) #create button to close the preview window
 
         
-# =========================================================================================================================
-# CLASS: QuizTakerWindow
-# GUI for taking a quiz with total and per question timers, safely end a quiz, and guard against double submissions 
-# Stores selections as choice indices (ints) to stay correct when shuffled
-# Uses an _alive flag and safe after_cancel guards to prevent timer racing
-# Locks UI after submit/timeout to avoid double submissions
-# =========================================================================================================================
+=========================================================================================================================
+CLASS: QuizTakerWindow
+GUI for taking a quiz with total and per question timers, safely end a quiz, and guard against double submissions 
+Stores selections as choice indices (ints) to stay correct when shuffled
+Uses an _alive flag and safe after_cancel guards to prevent timer racing
+Locks UI after submit/timeout to avoid double submissions
+=========================================================================================================================
 
 class QuizTakerWindow:
     def __init__(self, master, quiz, total_time, per_question_seconds, shuffle_questions, shuffle_choices): #initialize the quiz taker window
@@ -882,11 +872,11 @@ class QuizTakerWindow:
             self.top.destroy() #close the quiz taker window
 
 
-# ================================================================================================================
-# CLASS: ResultWindow
-# GUI for displaying quiz results including score and a table of incorrect/skipped answers using treeview widget
-# Safely handles total == 0 case to avoid division by zero
-# ================================================================================================================
+================================================================================================================
+CLASS: ResultWindow
+GUI for displaying quiz results including score and a table of incorrect/skipped answers using treeview widget
+Safely handles total == 0 case to avoid division by zero
+================================================================================================================
 class ResultsWindow:
     def __init__(self, master, quiz, score, total, selections=None, incorrect=None): #initialize the results window
         self.top = tk.Toplevel(master) #create a new top-level window
@@ -928,9 +918,9 @@ class ResultsWindow:
                                                                              
         tk.Button(self.top, text="Close", command=self.top.destroy).pack(pady=(0, 10)) #create button to close the results window
 
-# ========================================
-# Program Entry Point
-# ========================================
+========================================
+Program Entry Point
+========================================
 
 if __name__ == "__main__": #if the program is run directly
     root = tk.Tk() #create the main window
