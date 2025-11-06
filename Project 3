@@ -1,0 +1,946 @@
+# Interpretation 
+
+Objective was to design and build a self-contained, GUI-based multiple choice quiz system using the tkinter module. 
+-The system needs to let a user create and manage multipe quizzes. 
+-Add, edit, delete quiz questions. 
+-Take quizzes where questions occurs one after the other instead of all at once. 
+-Track progress in the quiz with a per-question and overall quiz timer. 
+-Allow user to see their score and incorrectly answered questions. 
+
+The focus was on understanding object-oriented programming using encapsulation, and modularity, GUI designing, while effectively handling errors, and input validation. 
+
+# Requirements, Techniques, Algorithms
+
+## Timers
+Technique: timers with after() + after_cancel()
+Two types of timers are used in this system to track countdown that tick once per second and update the user interface:
+- Total timer: overall quiz duration
+- Per Question timer: time to answer current questions
+If the per-question timer expires, the current question is auto-recorded as skipped, the inputs are locked, and the user proceeds. If the total timer expires, the quiz finishes immediately. 
+
+The rules enforced for this when a quiz starts:
+-The total time must be greater than or equal to 30
+-The total time also needs to cover the calculation of per question timer multiplied by the number of questions. So, if the user's total timer they input is too small, the system will auto-adjust to the minimum required value and inform them of the change.
+
+Safety: Timers are cancelled with guards to avoid a TclError when a window is closed, using an _alive flag prevents any callbacks from running after a window is closed (teardown). A _locked flag prevents any double-submissions races between submitting an answer, clicking next, and a timeout. 
+
+## Encapsulation:
+-Quiz_item class: holds one questions, 2-4 unique choices, and the correct answer which is stored as an index (correct_index) and not just a string correct answer. Setters include (set_question, set_choice, set_correct_answer/set_correct_index) and validate updates to ensure the mapping between correct answer and choices under a question are stable, even if choiced are edited. Also, storing the answer as an index avoid desyncing when shuffling or whitespace/case edits. 
+
+-Quiz class: owns the quiz title and list of Quiz_items, allowing users to add an item, display all items (read only), calculate the score (compare selected indices to correct_index), execute a quiz (wrapper that returns a formatted score, total, and incorrect_list).
+
+-The original question order and each item's original choices are never mutated. The taker window builds a shuffled index order for questions, and for each screen it builds a local list of choice indices (option to shuffle) when rendered. The correct answer always stays correct via index when first set.
+
+-There is a single finish point, finish(), regardless of what occurs during the quiz (timeout, last question, or window closed) so the cleanup and results always remain consistent. 
+
+## Input validation/Error Handling:
+Quiz_item class:
+-Question validation with no empty string
+-Choice validation set to 2-4, it is trimmed, must cast-insensitive, unique, and all while preserving the original casing/order (how it was first inputted and where when a Quiz_item was added under the Quiz class)
+-Correct answer validation using index in range or text that exactly matches one choice after trimming
+
+Quiz class:
+-only adds item that are properly constructed through the Quiz_item object
+-does not display empty quizzes
+-under calculate_score it requires selections length to match items and returns a detailed incorrect list with questions, selected (None for skipped), and correct. Case handling is implied because we're grading by index, and not by text anymore. 
+
+QuizApp class:
+-uses messegebox's to inform the user that a quiz title must be non-empty, and unique (no duplicates)
+-taking a quiz requires selecting it and it must have one item
+-only accepts numeric integer input for the timers using askinteger()
+-total time is auto-adjusted to meet the timer rules (under Timers section)
+
+QuizEditor class:
+-edit/delete a selected item with a confirmation as a safeguard
+-launch the QuizItemDialog safely and reload the list view when changes are mde
+
+QuizItemDialog class:
+-Handles input validation by not accepting an empty question text or else a messagebox error pops up
+-Accepts at the very least 2 non-empty unique choices, but upto 4 unique choices
+-Validates that the correct answer matches one of the choices, or else a messagebox error pops up
+-Only saves and closes the window after succesfully adding/replacing the full question set as per requirements
+
+PreviewWindow class:
+-Only appears in a read-only table using ttk.Treeview so no changes can be made and it is user-friendly
+
+QuizTakerWindow class:
+-A messagebox error pops up if a user tries to submit an answer without selecting any one of the choices
+-Uses _alive, _locked, and guards after_cancel() calls to prevent timer races and double submissions
+-On per-question timeout, it is recorded as skipped, will lock any further inputs, and moves the flow towards the next question button
+-Closing a window mid-quiz will ask for confirmation before doing so, and cancels timers safely 
+
+ResultsWindow class:
+-Requires either selections or an already created incorrect list as a cross-check, raised a ValueError if both are missing
+-Shows percentage even when the total == 0
+-Handles skipped answers
+-Displays a table listing the incorrect/skipped questions/answers in rows, or a message for the perfect score
+
+Return:
+-Early returns are used throughout to stop invalid flows immediately or prevent repeated scheduling for timers 
+
+Try-Except-Pass-Finally: 
+-Ensures an action is completed taking a constraint into account. The try portion will fulfill an if statement, then except will handle errors, pass will ignore errors if there are none, and finally will always keep it running. 
+
+## Shuffling
+-In questions, a shuffled list of question indices creates order when enabled. In choices, for each question screen, a local list of choice indices is built and optionally shuffled. Radio buttons to accept answers use the original indices as their values so that scoring remains correct throughout. 
+
+## Indexing
+-Each Quiz_item is stored in a list which we seperate using indexes, so if the questions are shuffled, because we're using index-matching, it will always map to the correct answer using its index instead of text match (which requires alot more handling than trimming whitespace and casefold). Same thing occurs with choices.
+-self.sel_by_item_index() is an important function that records which choice index was selected for each question in a dictionary, so later when we're grading for correct answers, the aligned() function will line up these indexes with the orginial questions, ensuring that even if questions/choices are shuffled, that the orginal question is cross-referenced to find the correct answer from the choices.
+
+## Flags
+-These boolean variables keep track of what is happening like checkpoints that guard that things happen once and in the correct order. In self._alive, the window is still open and running, so timers shouldn't run after they're closed. In self.finished, when the quiz is completed, it stops double results from showing. In self._locked, once the user has submitted an answer for the current questions, this will not allow for resubmitting or changing answers after time runs out. 
+
+## Locking/Unlocking UI
+-After a user has submitted an answer or the quiz has run out of time (per question timer), the tkinter radiobutton is disabled, unless there are more questions to answer, then it will the keep Next button normal/active to click on, while in the last questions, it will automatically end the quiz. 
+
+## Algorithm
+1) Import modules tkinter (tk, ttk, simpledialog, messagebox) and random
+2) Construct a class called Quiz_item with question, choices, correct_index (to accept index/matching text). Include setters to validate updates.
+3) Construct Quiz class which is defined by a quiz title attached to the items taken from the Quiz_item class above. Underneath this add methods to add a single item (a quiz with a title, and question sets), display items (display a single quiz with its questions and answers), calculate the score of a single quiz with its index, and execute a single quiz
+4) Construct GUI components for the following classes: QuizApp, QuizEditor, QuizItemDialog, PreviewWindow, QuizTakerWindow, and ResultsWindow
+5) Under QuizApp create a main window with a listbox of quiz titles and buttons to create, edit, preview, and take a quiz
+6) In QuizEditor create a GUI window with buttons to add, edit, and delete questions
+7) For PreviewWindow class create a GUI window using ttk.Treeview to showcase a read-only version of the quiz data in a tabular form
+8) In QuizItemDialog create a GUI window with buttons to add or edit a quiz question (like the question it self, any one of the choices, or the correct answer) and save this information under the quiz with validation criteria 
+9) For the QuizTakerWindow class create two timers, a total timer for the whole quiz, and a per-question timer that will tick down when a quiz is taken. Include safe cancellation of timers. As well as, include the optional method to shuffle the question and choices using the random module, and present the questions one at a time using indexing. 
+10) Submit and Next buttons during quiz should flow with locking to avoid double submissions and auto-skip when the per question timer runs out
+11) Create a finish logic as a single method which handles cancelling timers, computing the score, and showing the results
+12) For the ResultsWindow class, use ttk.Treeview of incorrect/skipped rows and the over score/percentage to create a tabular presentation of this information 
+
+# Modules, Classes, Functions
+
+## GUI System overview
+
+QuizApp (main window)
+  ├── QuizEditor (manage questions)
+  │     └── QuizItemDialog (add/edit one item)
+  ├── PreviewWindow (see items + answers)
+  └── QuizTakerWindow (take quiz)
+        └── ResultsWindow (final score & breakdown)
+
+## Classes & Functions 
+
+1) class Quiz_item which represents one multiple choice question
+Attributes: question, choices, correct_index
+Setter Methods/Functions: 
+-set_question() used to update the question text
+-set_choice() used to update the choices
+-set_correct_answer() used to update the correct choice
+-set_correct_index() used to update the correct answers index if changed 
+
+2) class Quiz which holds a collection of Quiz_items
+Attributes: title, items 
+Functions: 
+-add_item(Quiz_item)
+-display_all_items(bool (T/F) to handle showing answers or not)
+-calculate_score(selected_indices) compares a selected indice to correct_index and returns the numeric score and list of incorrect/skipped entries
+-execute_quiz(selections) is used to validate the selection list length and delegates to calculate_score above
+
+3) class QuizApp is the main window to manage quizzes and navigation 
+Attributes: self.master is the root Tkinter window, quizzes (Quiz objects), listbox (display quiz titles), buttons (create quiz, add item, preview (with answers), take quiz)
+Functions: 
+-refresh_list is used to update the listbox to showcase all the added quizzes
+_selected_quiz() uses an _ to indicate that we do not want to make any changes to this function as it returns a selected quiz from the listbox or raises an error if no quiz title is selected
+-create_quiz() prompts for a title, validates that it is unique and non-empty to create a new quiz title
+-edit_quiz() opens Quizeditor when selected for a specific quiz
+-preview_quiz() opens the PreviewWindow to view quiz questions with correct answers
+-take_quiz() prompts for timers (integers) from user, and auto-adjusts total time to meet rules, asks about shuffling the question/choices, and opens the QuizTakerWindow
+
+4) class QuizEditor manages adding, editting, deleting questions inside a specific quiz 
+Attributes: Quiz object, top-level window (opens by itself independently), listbox (to list all the Quiz_item questions)
+Functions: 
+-reload() refreshes the list of questions in the listbox 
+-add_item() opens the QuizItemDialog to create a new quiz question
+-edit_item() opens the QuizItemDialog to edit a question, handles any errors by requiring a selection of a quiz questions (must click on the quiz question then the edit button)
+-delete_item() will delete any selected question with extra validation to confirm with the user, after which it will refresh the listbox of questions shown 
+
+5) class QuiztItemDialog is used to add/edit a single question (Quiz_item)
+Attributes: quiz, editor, index, top-level window (opens by itself independently), one entry widget for question text, four entry widgets for choices, one entry widget for correct answer 
+Functions: 
+-save(): input validation ensures no empty question text, atleast 2 unique choices exist, and the correct answer must be one of the choices. It will also handle the cases if a new question is being added, or if user is editting an existing question (pre-populates the questions, choices, and correct answer). Refreshes the QuizEditor window with changes, and closes by itself when the save button is clicked. 
+
+6) class PreviewWindow displays all Quiz_items (questions, choices, correct answer) in a read-only table 
+Attributes: top-level window (opens by itself independently), tree (ttk.Treeview) widget with columns for question data in a read-only format 
+Functions: 
+-The function is initialized when the button to preview questions is clicked on by building a  table with columns for the #, Question, Choices, and Correct. Inserts the quiz data into the table, and has a close button to manually close the window. 
+
+7) class QuizTakerWindow handles the quiz execution by presenting questions one by one, tracking timers, progress, and scores
+Attributes: 
+-quiz
+-top-level window (opens by itself independently)
+-total_time_init (total quiz timer in seconds)
+-per_q_init (per question timer in seconds)
+-per_left, 
+-IDs for shuffling flags: progress(index), selection map (sel_by_item_index), UI state (_alive and _locked)
+-widgets (labels for questions/timers, radiobuttons for choices, submit and next buttons)
+Functions: 
+_current_time() must not not be changed due the _, this returns the current Quiz_item based on shuffled order
+-update_timer_label() which updates progress/timer display string
+-tick_total() is the total timer countdown which ends quiz when expired
+-tick_per() is the per question timer, on expiration it records skipped answers and locks the UI
+-reset_per_timer() restarts the per-question timer for each new question
+-cancel_timers() cancels both active timers when needed safely with guards
+-show_item() creates the currect question to show, buils the local choice index order if shuffled
+-submit_answer() validates the selection, records the selected index, locks input, and enables the "Next" button or finishes a quiz (if last question)
+-next_question() moves to the next question or ends quiz if on the last question
+-finish() cancels timers, calculates the score, and opens the ResultsWindow, and closes the QuizTakerWindow
+-on_close() handles the quiz window being closed in the middle of a quiz with a confirmation and handles closing the timers as well 
+
+8) class ResultsWindow displays the quiz results including the total score, percentage, and list of incorrect/skipped questions 
+Attributes: top-level window (opens by itself independently), quiz, score, total, incorrect, widgets for labelling score, ttk.treeview for incorrect questions, and a close button
+Functions: 
+-The function is initialized when the quiz is completed and it calculates the percentage, shows a table for the incorrect/skipped questions or None, a perfect score message, and includes a close button to manually close the window 
+
+## Modules
+
+Tkinter: 
+-grid for framing inside a Listbox
+-pack for dialogs/smaller windows
+-using (fill="both", expand=True) to resize windows as needed
+-Listbox used in QuizApp class as the main window display quiz titles
+-Buttons used to create, edit, delete, take, or preview quizzes
+-Label to display questions and timers
+-Entry to take text input for titles, questions, choices, and correct answers
+-RadioButton in QuizTakerWindow class to click on the correct choice (removing the need to type in an answer) 
+-ttk.Treeview in PreviewWindow class and ResultsWindow class to showcase information in a tabular, scroll-friendly view of the questions/answers within a quiz and the incorrect/skipped questions and answers in a read-only format
+-messagebox is used to handle errors (ie. pop up that an error is occuring), make confirmation (ie. prior to deleting an item)
+-simpledialog.askinteger to grab number inputs for timers
+-Toplevel to showcase that each dialog/window is an isolated child window for a user-friendly design 
+
+Random:
+-random.shuffle() for optional shuffling of questions indices or choice indices 
+
+# User Guide 
+
+1) Launch this script on your IDE software 
+2) When the file is launched, the first thing shown will be an empty main window with buttons
+2) To create a quiz, click on "create new quiz", then enter a quiz title, and a new quiz will now appear on the main window (you can add multiple quiz titles for different quizzes)
+3) Select a quiz and click on "edit selected quiz" to add, edit, or delete questions. Each question will require an input of a question text, 2-4 choices for each question, and one correct answer from the choices. Then click save to store the question. Make sure the correct answer is an exact match to one of the choices.
+4) Preview a quiz (with answers) by selcting a quiz to see all questions, choices, and correct answers in a table format in a read-only format.
+5) To take a quiz, click on one of the quiz titles, and press the "take selected quiz" button, then enter the total time limit and per question time in seconds. The system will auto-increase and adjust based on rules on how much time is allocated.
+6) Optionally a choice will be given to shuffle questions followed by answer choices. 
+7) During the quiz, each question will appear one by one with the timers running. Click on the circle next to the correct answer and submit it, then click on next question to access the next question. If the per-question timer runs out, it will be recorded as skipped and inputs will be locked, so you must go to the next question. 
+8) Once a quiz is completed, a score and percentage are shown, including incorrect and skipped questions with their correct answers in a table format. 
+
+# Reflection
+
+Main challenges were figuring out how to coordinate simulataneous timers and cancellation methods for them. But, using the after()/after_cancel() with _alive flag and a single finish() method prevented callback races and crashouts.
+
+Also how to implement shuffling in a non-destructive way for the data led me to store the correct answer as an index instead of text so mapping is not lost. This now eliminated any edge cases with issues around whitespace/casing, and kept the correctedness under shuffling. Simulataneously, even understanding the importance of case sensitivity and exact matching when comparing choices and correct answer was a huge learning curve, especially since the answer is recorded using a Radio Button during the quiz. But, this taught me that the system under the hood needs to handle different cases even if the UI at the top does not. If in the future, I change this quiz to take text-input for correct answers, I am now fully covered to do so. 
+
+I had to tighten input validation through multiple reiterations, including auto-adjusting the timers to follow constraints instead of putting in a constraint (ie. min 30 secs for total_timer) and having no follow-up with it. 
+
+Overall, this system is robust based on the validation and error handling methods that I could think of, but it still has a lot of room for further improvements and logic-proofing. Another thing I wanted to include but decided against was data persistence with JSON, instead I choose to add a feature to shuffle answers and questions to make the quiz taking experience more useful for users and their learning.  
+
+
+"""
+What is does: 
+GUI-based Quiz System that allows users to create, manage, preview, and take multiple-choice quizzes (option to shuffle questions/choices) with timing features
+It uses object-oriented programming principles to encapsulate quiz data and operations within classes, while leveraging tkinter for the graphical user interface.
+"""
+
+import tkinter as tk # tkinter for GUI components
+from tkinter import ttk, messagebox, simpledialog #tkinter widgets and dialogs
+import random #random for shuffling questions and choices
+
+# =============================================================================================================================================================================
+# CLASS: Quiz_item
+# Represents a single multiple-choice question with choices and correct answer stored as an index. 
+# Requires a question text, a minimum of 2 choices with a maximum of 4 choices, and a correct index (or correct text answer that matches one of the choices).
+# Setters validate updates, and corrected answer is maintained by index or text.
+# =============================================================================================================================================================================
+class Quiz_item:
+    def __init__(self, question, choices, correct):
+        self.question = str(question).strip() #question text
+
+        # Create a a list of unique choices that preserve the original casing and order
+        raw_choices = [str(c).strip() for c in choices if str(c).strip()] #strip whitespace and convert to string for each choice
+        seen = set() #set to hold unique choices
+        uniq = [] #list to hold unique choices
+        for c in raw_choices: #for each choice in the raw choices
+            k = c.casefold() #casefold the choice for uniqueness check
+            if k not in seen: #if the choice is not in the seen set
+                seen.add(k) # add the choice to the seen set
+                uniq.append(c) #append the choice to the unique choices list
+        if not (2 <= len(uniq) <= 4):  #if the number of unique choices is less than 2 or greater than 4
+            raise ValueError("Choices must be unique and in the range of 2 to 4") #raise a value error with a statement
+        self.choices = uniq #set the choices to the unique choices list
+
+        # Accept for correct answer the index (int) or the text (str) that matches one of the choices
+        if isinstance(correct, int): #if the correct answer is an integer index
+            idx = correct
+        else:
+            try:
+                idx = self.choices.index(str(correct).strip()) #get the index of the correct answer in the choices list
+            except ValueError:
+                raise ValueError("Correct answer must be one of the choices") #raise a value error with a statement
+        if not (0 <= idx < len(self.choices)): #if the index is out of range
+            raise ValueError("Correct answer index out of range") #raise a value error with a statement
+        self.correct_index = idx #set the correct answer to the choice at the index
+        
+    def set_question(self, new_question):
+        """Updates the question text, but will raise an error if left empty""" 
+        new_question = str(new_question).strip() #convert to string and strip whitespace
+        if not new_question: #if the new question is empty
+            raise ValueError("No empty questions allowed") #raise a value error with a statement
+        self.question = new_question #set the question to the new question
+
+    def set_choice(self, index, new_choice): 
+        """Update a text at index. Keep unique answers and case-insensitive constraints. The correct answer index stays in the same index"""
+        if not (0 <= index < len(self.choices)): #if the index is out of range
+            raise IndexError("Choice index out of range") #raise a index error with a statement
+        new_choice = str(new_choice).strip() #convert to string and strip whitespace
+        if not new_choice: #if the new choice is empty
+            raise ValueError("No empty choices allowed") #raise a value error with a statement
+        # Check for duplicates
+        probe = [c.casefold() for i, c in enumerate(self.choices) if i != index] #list of casefolded choices excluding the one being updated    
+        if new_choice.casefold() in probe: #if the new choice is already in the choices (case-insensitive)
+            raise ValueError("Choices must be unique and not duplicated") #raise a value error with a statement 
+        self.choices[index] = new_choice #set the choice at the index to the new choice 
+
+    def set_correct_answer(self, new_answer): 
+        """Set the correct answer if exact match to one of the choices after trimming"""
+        new_answer = str(new_answer).strip() #convert to string and strip whitespace
+        try:
+            self.correct_index = self.choices.index(new_answer) #get the index of the new correct answer in the choices list
+        except ValueError:
+            raise ValueError("Correct answer must be one of the choices") #raise a value error with a statement
+        
+    def set_correct_index(self, idx: int):
+        """Set the correct answer by index that must be in range"""
+        if not (0 <= idx < len(self.choices)): #if the index is out of range
+            raise IndexError("Correct answer index out of range") #raise a value error with a statement
+        self.correct_index = idx #set the correct answer to the choice at the index
+        
+    def correct_text(self) -> str:
+        """Return the correct answer text"""
+        return self.choices[self.correct_index] #return the correct answer text
+
+# ==============================================================================================================================================
+# CLASS: Quiz 
+# Manages a collection of Quiz_item objects, with methods to add items, display them, calculate scores, and execute the quiz based on logic.
+# Scoring compares indices (not string alone) for robustness against case/spacing issues and shuffling. 
+# ==============================================================================================================================================
+class Quiz:
+    def __init__(self, title):
+        self.title = str(title).strip() #quiz title
+        self.items = [] #list of Quiz_item objects
+
+    def add_item(self, item: Quiz_item): # add a Quiz_item to the quiz
+        self.items.append(item) #append the item to the items list
+
+    def display_all_items(self, with_answers=False): 
+        """Returns a formatted string of all quiz items, optionally including correct answers"""
+        blocks = [] #list to hold each question block
+        for i, it in enumerate(self.items, start=1): #for each quiz item in the items list 
+            lines = [f"Q{i}: {it.question}"] #list to hold lines for each question block
+            for j, ch in enumerate(it.choices, start=1): #for each choice in the quiz item choices
+                lines.append(f" {j}. {ch}") #append the choice to the lines list
+            if with_answers: #if with_answers is True
+                lines.append(f" Correct: {it.correct_text()}") # append the correct answer to the lines list
+            blocks.append("\n".join(lines)) #append the lines list to the blocks list
+        return "\n\n".join(blocks) #return the blocks list as a string
+
+    def calculate_score(self, selected_indices): 
+        """To score a quiz, it compares the selected answer indices to correct answer indices and returns score and incorrect answers based on if they match"""
+        if selected_indices is None:
+            raise ValueError("Selected answers must be provided") #raise a value error with a statement
+        if len(selected_indices) != len(self.items): #if the length of selected answers is not equal to the length of items
+            raise ValueError("Selected answers length must match number of quiz items") #raise a value error with a statement   
+        
+        score = 0 #initialize score
+        incorrect = [] #list to hold incorrect answers
+        for item, sel in zip(self.items, selected_indices): #for each quiz item and selected answer
+            if sel is None:
+                incorrect.append({
+                    "question": item.question,
+                    "selected": None,
+                    "correct": item.correct_text()
+                })
+            elif sel == item.correct_index: #if the selected answer index matches the correct answer index
+                score += 1 #increment score
+            else:
+                selected_text = item.choices[sel] if (0 <= sel < len(item.choices)) else None #get the selected answer text
+                incorrect.append({
+                    "question": item.question,
+                    "selected": selected_text,
+                    "correct": item.correct_text()
+                    })
+        return score, incorrect #return the score and incorrect answers
+
+    def execute_quiz(self, selections): 
+        """Execute the quiz by comparing user selections to correct answers and returning score and incorrect answers"""
+        score, incorrect = self.calculate_score(selections) #calculate the score and incorrect answers
+        return score, len(self.items), incorrect #return the score, total number of items, and incorrect answers
+
+# ===========================================================================================================================================
+# CLASS: QuizApp
+# Main application GUI using tkinter to manage, view, and take quizzes
+# Enforces: total_time ≥30 seconds and total_time ≥ per_question_time * number_of_questions by adjusting total_time and informs the user
+# ============================================================================================================================================                            
+
+class QuizApp:
+    def __init__(self, master): 
+        self.master = master #main window
+        self.master.title("Quiz System") 
+        self.quizzes = [] #list to hold quizzes
+
+        frame = tk.Frame(master, padx=10, pady=10) #create a frame with padding
+        frame.pack(fill="both", expand=True) #pack the frame to fill the window
+
+        self.listbox = tk.Listbox(frame, height=8, width=40) #create a listbox to display quizzes
+        self.listbox.grid(row=0, column=0, columnspan=3, sticky="nsew", pady=(0, 8)) #grid the listbox in the frame
+
+        btn_create = tk.Button(frame, text="Create Quiz", command=self.create_quiz) #create button to create a new quiz
+        btn_add = tk.Button(frame, text="Add Items", command=self.edit_quiz) 
+        btn_preview = tk.Button(frame, text="Preview (with answers)", command=self.preview_quiz) 
+        btn_take = tk.Button(frame, text="Take Quiz", command=self.take_quiz)
+
+        btn_create.grid(row=1, column=0, padx=4, pady=4, sticky="ew") #grid the buttons in the frame
+        btn_add.grid(row=1, column=1, padx=4, pady=4, sticky="ew") 
+        btn_preview.grid(row=1, column=2, padx=4, pady=4, sticky="ew") 
+        btn_take.grid(row=2, column=0, columnspan=3, padx=4, pady=4, sticky="ew") 
+
+        frame.grid_columnconfigure(0, weight=1) #configure grid columns and rows to expand
+        frame.grid_columnconfigure(1, weight=1) 
+        frame.grid_columnconfigure(2, weight=1) 
+        frame.grid_rowconfigure(0, weight=1) 
+
+    def refresh_list(self): 
+        """refresh the quiz title show in the listbox"""
+        self.listbox.delete(0, tk.END) #clear the listbox
+        for q in self.quizzes: #for each quiz in the quizzes list
+            self.listbox.insert(tk.END, q.title) #insert the quiz title into the listbox
+
+    def _selected_quiz(self): 
+        """get the currently selected quiz from the listbox, or an error dialog if nothing is selected"""
+        sel = self.listbox.curselection() #get the current selection
+        if not sel: #if no selection is made
+            messagebox.showerror("Error", "No quiz selected.") #show an error message
+            return None 
+        return self.quizzes[sel[0]] #return the selected quiz
+
+    def create_quiz(self): 
+        """prompt for a title and create a new empty quiz"""
+        title = simpledialog.askstring("Create Quiz", "Enter quiz title:") #ask the user for a quiz title
+        if not title or not title.strip(): #if the title is empty or only whitespace
+            messagebox.showerror("Error", "Title cannot be empty.") #show an error message
+            return 
+        title = title.strip() #strip whitespace from the title
+        if any(q.title.casefold() == title.casefold() for q in self.quizzes): #if a quiz with the same title already exists (case-insensitive)
+            messagebox.showerror("Error", "A quiz with this title already exists.") #show an error message
+            return 
+        self.quizzes.append(Quiz(title.strip())) #append the new quiz to the quizzes list
+        self.refresh_list() #refresh the quiz list
+
+    def edit_quiz(self): 
+        """open the editor window for the selected quiz"""
+        quiz = self._selected_quiz()  #get the currently selected quiz
+        if not quiz:  #if no quiz is selected, then no action occurs
+            return  
+        QuizEditor(self.master, quiz) #open the quiz editor window
+
+    def preview_quiz(self): 
+        """open a preview window for the selected quiz including answers"""
+        quiz = self._selected_quiz()  #get the currently selected quiz
+        if not quiz: #if no quiz is selected, then no action occurs
+            return 
+        PreviewWindow(self.master, quiz)  #open the preview window
+
+    def take_quiz(self): 
+        """launch window to take the quiz including timers and shuffled options if enabled. Enforces that to launch a quiz, the number of questions multiplied by per question timer is greater than the total time alotted for the quiz"""
+        quiz = self._selected_quiz()  #get the currently selected quiz
+        if not quiz: #if no quiz is selected, then no action occurs
+            return 
+        if not quiz.items: #if the quiz has no items
+            messagebox.showerror("Error", "This quiz has no items.") #show an error message
+            return 
+
+        total_time = simpledialog.askinteger("Total Time", "Enter total time (seconds):", minvalue=30) #ask the user for total time
+        if not total_time: #if no total time is provided
+            return 
+        per_q = simpledialog.askinteger("Per Question Time", "Enter per-question time (seconds):", minvalue=15) #ask the user for per-question time
+        if not per_q: #if no per-question time is provided
+            return 
+        
+        num_items = len(quiz.items) #number of items in the quiz
+        min_total = max(30, per_q * num_items) #minimum total time required
+        if total_time < min_total: #if total time is less than minimum required
+            messagebox.showinfo( 
+                "Adjusted total time",
+                f"Total time increased to {min_total} seconds to satisfy:\n"
+                f"- You need at least 30 seconds total time\n"
+                f"- At least {per_q} seconds per question for {num_items} questions\n"
+            )
+            total_time = min_total #set total time to minimum required
+
+        shuffle_q = messagebox.askyesno("Shuffle Questions", "Shuffle question order?") #ask the user if they want to shuffle questions
+        shuffle_c = messagebox.askyesno("Shuffle Choices", "Shuffle choices for each question?") #ask the user if they want to shuffle choices
+        
+        QuizTakerWindow(self.master, quiz, total_time, per_q, shuffle_q, shuffle_c) #open the quiz taker window
+
+# =======================================================================================================
+# CLASS: QuizEditor
+# GUI for adding, editing, deleting, and previewing quiz questions (Quiz_items) within a selected quiz 
+# =======================================================================================================                            
+
+class QuizEditor:
+    def __init__(self, master, quiz): #initialize the quiz editor window
+        self.quiz = quiz #the quiz being edited
+        self.top = tk.Toplevel(master) #create a new top-level window
+        self.top.title("Edit Quiz: " + quiz.title) #set the window title
+
+        self.listbox = tk.Listbox(self.top, width=70, height=12) #create a listbox to display quiz items
+        self.listbox.pack(padx=10, pady=10, fill="both", expand=True) #pack the listbox in the window
+
+        row = tk.Frame(self.top) #create a frame for buttons
+        row.pack(padx=10, pady=(0, 10), fill="x") #pack the frame in the window
+
+        tk.Button(row, text="Add Item", command=self.add_item).pack(side="left", padx=4) #create button to add a new quiz item
+        tk.Button(row, text="Edit Selected", command=self.edit_item).pack(side="left", padx=4) #create button to edit the selected quiz item
+        tk.Button(row, text="Delete Selected", command=self.delete_item).pack(side="left", padx=4) #create button to delete the selected quiz item
+
+        self.reload() #load the quiz items into the listbox
+
+    def reload(self): 
+        """refresh the listbox with current item prompts"""
+        self.listbox.delete(0, tk.END) #clear the listbox
+        for i, it in enumerate(self.quiz.items, start=1): #for each quiz item in the quiz
+            self.listbox.insert(tk.END, f"{i}. {it.question}") #insert the quiz item question into the listbox
+
+    def add_item(self):
+        """open dialog to create a new item"""
+        QuizItemDialog(self.top, self.quiz, self) #open the quiz item dialog window
+
+    def edit_item(self): 
+        """open dialog to edit the selected quiz item"""
+        sel = self.listbox.curselection() #get the current selection
+        if not sel: #if no item is selected
+            messagebox.showerror("Error", "No item selected.") #show an error message
+            return 
+        QuizItemDialog(self.top, self.quiz, self, index=sel[0]) #open the quiz item dialog window with the selected item index
+
+    def delete_item(self): 
+        """delete the selected quiz item after confirmation"""
+        sel = self.listbox.curselection() #get the current selection
+        if not sel: #if no item is selected
+            messagebox.showerror("Error", "No item selected.") #show an error message
+            return
+        if not messagebox.askyesno("Confirm Delete", "Are you sure you want to delete the selected item?"): #ask the user to confirm deletion
+            return
+        del self.quiz.items[sel[0]] #delete the selected quiz item from the quiz
+        self.reload() #reload the quiz items in the listbox
+
+# ========================================================================================================
+# CLASS: QuizItemDialog
+# Dialog window for adding or editing a quiz question
+# Validates non empty questions, 2-4 unique choices, and correct answer matching one of the choices
+# ========================================================================================================  
+
+class QuizItemDialog:
+    def __init__(self, master, quiz, editor, index=None): #initialize the quiz item dialog window
+        self.quiz = quiz #the quiz being edited 
+        self.editor = editor #the quiz editor window
+        self.index = index #the index of the quiz item being edited (None if adding a new item)
+
+        self.top = tk.Toplevel(master) #create a new top-level window
+        self.top.title("Add/Edit Quiz Item") #set the window title
+
+        tk.Label(self.top, text="Question:").pack(anchor="w", padx=10, pady=(10, 0)) #create label for question
+        self.e_question = tk.Entry(self.top, width=70) #create entry for question
+        self.e_question.pack(padx=10, pady=4) #pack the question entry
+
+        self.choice_entries = [] #list to hold choice entries
+        for i in range(4): #create entries for 4 choices
+            tk.Label(self.top, text=f"Choice {i + 1}:").pack(anchor="w", padx=10) #create label for choice
+            e = tk.Entry(self.top, width=50) #create entry for choice
+            e.pack(padx=10, pady=2) #pack the choice entry
+            self.choice_entries.append(e) #append the choice entry to the list
+
+        tk.Label(self.top, text="Correct Answer (must match one choice):").pack(anchor="w", padx=10, pady=(8, 0)) #create label for correct answer
+        self.e_correct = tk.Entry(self.top, width=50) #create entry for correct answer
+        self.e_correct.pack(padx=10, pady=4) #pack the correct answer entry
+
+        tk.Button(self.top, text="Save", command=self.save).pack(pady=(6, 10)) #create button to save the quiz item
+
+        if index is not None: #if editing an existing quiz item
+            it = self.quiz.items[index] #get the quiz item
+            self.e_question.insert(0, it.question) #insert the question into the entry
+            for i, ch in enumerate(it.choices): #for each choice in the quiz item
+                if i < len(self.choice_entries): #if the index is less than the number of choice entries
+                    self.choice_entries[i].insert(0, ch) #insert the choice into the entry
+            self.e_correct.insert(0, it.correct_text()) #insert the correct answer into the entry
+
+    def save(self): 
+        """Validate inputs and add/update the quiz item"""
+        q = self.e_question.get().strip() #get the question from the entry
+        choices = [e.get().strip() for e in self.choice_entries if e.get().strip()] #get the choices from the entries
+        correct_text = self.e_correct.get().strip() #get the correct answer from the entry
+
+        if not q: #if the question is empty
+            messagebox.showerror("Error", "Question cannot be empty.", parent=self.top) #show an error message
+            return 
+        if len(choices) < 2: #if less than 2 choices are provided
+            messagebox.showerror("Error", "Provide at least two choices.", parent=self.top) #show an error message
+            return
+        if len({c.casefold() for c in choices}) < len(choices): #if choices are not unique (case-insensitive)
+                messagebox.showerror("Error", "Choices must be unique and not duplicated.", parent=self.top) #show an error message
+                return
+        if correct_text not in choices: #if the correct answer is not in the choices
+            messagebox.showerror("Error", "Correct answer must be one of the choices.", parent=self.top) #show an error message
+            return
+
+        correct_index = choices.index(correct_text) #get the index of the correct answer in the choices list
+        item = Quiz_item(q, choices, correct_index) #create a new quiz item
+
+        if self.index is None: #if adding a new quiz item
+            self.quiz.add_item(item) # add the new quiz item to the quiz
+        else: #if editing an existing quiz item
+            self.quiz.items[self.index] = item #update the existing quiz item in the quiz
+            
+        self.editor.reload() #reload the quiz items in the editor
+        self.top.destroy() #reload the quiz items in the editor and close the dialog
+
+# ==============================================================================================
+# CLASS: PreviewWindow
+# GUI for previewing quiz questions, choices, and correct answer in a table using ttk.Treeview
+# ==============================================================================================
+
+class PreviewWindow:
+    def __init__(self, master, quiz): #initialize the preview window
+        self.top = tk.Toplevel(master) #create a new top-level window
+        self.top.title("Preview (with answers): " + quiz.title) #set the window title
+
+        cols = ("#", "Question", "Choices", "Correct") #columns for the treeview
+        tree = ttk.Treeview(self.top, columns=cols, show="headings", height=12) #create a treeview to display quiz items
+        for c in cols: #for each column in the columns list
+            tree.heading(c, text=c) #set the column heading
+        tree.column("#", width=50, anchor="w") #set the column width and alignment
+        tree.column("Question", width=300, anchor="w") #set the column width and alignment
+        tree.column("Choices", width=350, anchor="w") #set the column width and alignment
+        tree.column("Correct", width=200, anchor="w") #set the column width and alignment
+        tree.pack(padx=10, pady=10, fill="both", expand=True) #pack the treeview in the window
+
+        for i, it in enumerate(quiz.items, start=1): #for each quiz item in the quiz
+            tree.insert("", tk.END, values=(i, it.question, " | ".join(it.choices), it.correct_text())) #insert the quiz item into the treeview
+
+        tk.Button(self.top, text="Close", command=self.top.destroy).pack(pady=(0, 10)) #create button to close the preview window
+
+        
+# =========================================================================================================================
+# CLASS: QuizTakerWindow
+# GUI for taking a quiz with total and per question timers, safely end a quiz, and guard against double submissions 
+# Stores selections as choice indices (ints) to stay correct when shuffled
+# Uses an _alive flag and safe after_cancel guards to prevent timer racing
+# Locks UI after submit/timeout to avoid double submissions
+# =========================================================================================================================
+
+class QuizTakerWindow:
+    def __init__(self, master, quiz, total_time, per_question_seconds, shuffle_questions, shuffle_choices): #initialize the quiz taker window
+        self.master = master #main window
+        self.quiz = quiz #the quiz being taken
+        self.total_time_init = int(total_time)  #total time for the quiz
+        self.per_q_init = int(per_question_seconds) #time per question
+        self.shuffle_questions = bool(shuffle_questions) #whether to shuffle questions
+        self.shuffle_choices = bool(shuffle_choices) #whether to shuffle choices
+        self.finished = False #whether the quiz is finished
+
+        self.top = tk.Toplevel(master) #create a new top-level window
+        self.top.title("Taking Quiz: " + quiz.title) #set the window title
+
+        # Progress State
+        self.index = 0 #current question index
+        self.sel_by_item_index = {} #dictionary to hold selected answers by item index
+        self._display_choice_order = [] #list to hold the order of choices displayed
+        self._choice_rbs = [] #list to hold the choice radio buttons
+        self._locked = False #whether the UI is locked after submission
+        self.finished = False #whether the quiz is finished
+        self._alive = True #whether the quiz taker window is alive
+
+        # Build question order  
+        self.order = list(range(len(self.quiz.items))) #list of question indices
+        if self.shuffle_questions: #if shuffling questions is enabled
+            random.shuffle(self.order) #shuffle the question order
+
+        # Timers: This allow users to cancel, navigate, finish quizzes with timer running in the background
+        self.total_left = self.total_time_init #total time left
+        self.per_left = self.per_q_init #time left for the current question
+        self.total_timer_id = None #ID for the total timer
+        self.per_timer_id = None #ID for the per-question timer
+
+        # UI
+        self.lbl_question = tk.Label(self.top, text="", wraplength=600, justify="left") #label to display the question
+        self.lbl_question.pack(padx=10, pady=(10, 6), anchor="w") #pack the question label
+
+        self.var_choice = tk.IntVar(value=-1) #variable to hold the selected choice index
+
+        for i in range(4): #maximum of 4 choices
+            rb = tk.Radiobutton(self.top, text="", variable=self.var_choice, value=-1, anchor="w", justify="left", wraplength=600) #create a radio button for each choice
+            rb.pack(anchor="w", padx=20) #pack the radio button
+            rb.pack_forget() #hide the radio button initially
+            self._choice_rbs.append(rb) #append the radio button to the list
+
+        self.lbl_timer = tk.Label(self.top, text="") #label to display the timers
+        self.lbl_timer.pack(padx=10, pady=6, anchor="w") #pack the timer label
+
+        row = tk.Frame(self.top) #create a frame for buttons
+        row.pack(padx=10, pady=(0, 10), fill="x") #pack the frame in the window
+        self.btn_submit = tk.Button(row, text="Submit Answer", command=self.submit_answer) #create button to submit the answer
+        self.btn_next = tk.Button(row, text="Next Question", command=self.next_question, state="disabled") #create button to go to the next question
+        self.btn_submit.pack(side="left", padx=4) #pack the submit button
+        self.btn_next.pack(side="left", padx=4) #pack the next button
+
+        self.top.protocol("WM_DELETE_WINDOW", self.on_close) #handle window close event
+
+        # Start timers/Present first question 
+        self.show_item() #show the first question
+        self.update_timer_label() #update the timer label
+        self.total_timer_id = self.top.after(1000, self.tick_total) #start the total timer
+        self.per_timer_id = self.top.after(1000, self.tick_per) #start the per-question timer
+
+    #helper to ensure an item is retrieved based on current index and order
+    def _current_item(self): #get the current quiz item
+        return self.quiz.items[self.order[self.index]] #return the quiz item at the current index
+
+    #time and label management methods
+    def update_timer_label(self): 
+        """update the timer label with the current time left"""
+        total_q = len(self.order)
+        total_mm, total_ss = divmod(self.total_left, 60) #calculate minutes and seconds for total time left using divmod, which in this case divides by 60
+        per_mm, per_ss = divmod(self.per_left, 60) 
+        self.lbl_timer.config(text=f"Q {self.index + 1}/{total_q} | Total Time Left: {total_mm:02}:{total_ss:02} | This Question: {per_mm:02}:{per_ss:02}") #update the timer label text
+
+    def cancel_timers(self): 
+        # Cancel per question timer safely
+        try: 
+            if self.per_timer_id is not None: #if there is an existing per-question timer
+                self.top.after_cancel(self.per_timer_id) #cancel the existing per-question timer
+        except Exception: # catch any exception to avoid crashes
+            pass # ignore any errors
+        finally: # always execute
+            self.per_timer_id = None #reset the per-question timer ID
+            
+        # Cancel total timer safely
+        try:
+            if self.total_timer_id is not None: #if there is an existing total timer
+                self.top.after_cancel(self.total_timer_id) #cancel the existing total timer
+        except Exception: # catch any exception to avoid crashes
+            pass # ignore any errors
+        finally: # always execute
+            self.total_timer_id = None #reset the total timer ID
+            
+
+    def tick_total(self): #tick the total timer
+        """decrement total timer and handle timeout"""
+        if not self._alive: #if the quiz taker window is not alive
+            return
+        self.total_left -= 1 #decrement total time left
+        self.update_timer_label() #update the timer label
+        if self.total_left <= 0: #if total time is up
+            messagebox.showinfo("Time's Up", "Total time for the quiz is up.") #show a message box
+            self.finish() #finish the quiz
+            return
+        self.total_timer_id = self.top.after(1000, self.tick_total) #schedule the next tick after 1 second
+
+    def tick_per(self): #tick the per-question timer
+        """decrement per-question timer and handle timeout"""
+        if not self._alive or self.finished or self._locked: #if the quiz taker window is not alive or the quiz is finished or the UI is locked
+            return
+        self.per_left -= 1 #decrement per-question time left
+        self.update_timer_label() #update the timer label
+        if self.per_left <= 0: #if per-question time is up
+            #How to handle timeout: record no answer, lock UI, and move on
+            q_idx = self.order[self.index] #get the original index of the current question
+            self.sel_by_item_index[q_idx] = None #record no answer selected for the current
+            # Disable UI to prevent further interaction
+            self._lock_after_submission()       
+            return
+        self.per_timer_id = self.top.after(1000, self.tick_per) #schedule the next tick after 1 second
+        
+
+    def reset_per_timer(self): #reset the per-question timer
+        """reset the per-question timer to initial value"""
+        try: 
+            if self.per_timer_id is not None: #if there is an existing per-question timer
+                self.top.after_cancel(self.per_timer_id) #cancel the existing per-question timer
+        except Exception: # catch any exception to avoid crashes
+            pass # ignore any errors
+        finally: # always execute
+            self.per_timer_id = None #reset the per-question timer ID 
+            
+        self.per_left = int(self.per_q_init) #reset per-question time left
+        self.update_timer_label() #update the timer label
+        if self._alive and not self.finished: #if the quiz taker window is alive and the quiz is not finished
+            self.per_timer_id = self.top.after(1000, self.tick_per) #start the per-question timer
+
+
+    #UI and quiz navigation methods
+    
+    def show_item(self): 
+        """display the current question and choices in the UI for grading"""
+        item = self._current_item() #get the current quiz item
+        self.lbl_question.config(text = f"Q{self.index + 1}: {item.question}") #set the question label text
+        self.var_choice.set(-1) #reset the selected choice
+
+        # Build list of choice indices, optionally shuffle, then render the radio buttons using original indices as values
+        self._display_choice_order = list(range(len(item.choices))) #initialize the choice order list
+        if self.shuffle_choices: #if shuffling choices is enabled
+            random.shuffle(self._display_choice_order) #shuffle the choices list
+            
+        # Update radio buttons to reflect choices in the determined order or hide unused buttons
+        for i, rb in enumerate(self._choice_rbs): #for each radio button in the list
+            if i < len(self._display_choice_order): #if the index is less than the number of choices
+                orig_idx = self._display_choice_order[i] #get the original index of the correct answer
+                rb.config(text=item.choices[orig_idx], value=orig_idx, state=tk.NORMAL) #set the radio button text and value
+                rb.pack(anchor="w", padx=20) #pack the radio button
+            else: #if the index is greater than or equal to the number of choices
+                rb.pack_forget() #hide the radio button
+                
+        # Update buttons state        
+        is_last = (self.index == len(self.quiz.items) - 1) #check if this is the last question
+        self.btn_next.config(text=("Finish Quiz" if is_last else "Next Question"), state="disabled") #disable the next button
+        self.btn_submit.config(state="normal") #enable
+        self._locked = False #unlock the UI
+        
+        self.reset_per_timer() #reset the per-question timer
+        
+    def _lock_after_submission(self):
+        """Lock choices and submit, enable Next button after submission or finish on last question"""
+        self._locked = True #lock the UI
+        for rb in self._choice_rbs: #for each radio button in the list
+            rb.config(state=tk.DISABLED) #disable the radio button
+        self.btn_submit.config(state=tk.DISABLED) #disable the submit button
+        is_last = (self.index == len(self.quiz.items) - 1) #check if this is the last question
+        if is_last: #if this is the last question   
+            self.finish() #finish the quiz
+        else: #if this is not the last question
+            self.btn_next.config(text="Next Question", state=tk.NORMAL) #enable the next button
+
+    def submit_answer(self): 
+        """record the selected answer and lock the UI"""
+        if self._locked or self.finished: #if the UI is locked or the quiz is finished
+            return
+        sel_idx = self.var_choice.get() #get the selected choice index
+        if sel_idx == -1: #if no choice is selected
+            messagebox.showerror("Error", "No answer selected.") #show an error message
+            return
+        
+        # Safely cancel per-question timer
+        try: 
+            if self.per_timer_id is not None: #if there is an existing per-question timer
+                self.top.after_cancel(self.per_timer_id) #cancel the existing per-question timer
+        except Exception: # catch any exception to avoid crashes
+            pass # ignore any errors
+        finally: # always execute
+            self.per_timer_id = None #reset the per-question timer ID
+            
+        q_idx = self.order[self.index] #get the original index of the current question
+        self.sel_by_item_index[q_idx] = int(sel_idx) #record the selected answer index for the current question
+        self._lock_after_submission() #lock the UI after submission
+        
+        
+    def next_question(self): 
+        """Advance to the next question or finish the quiz if on the last question"""
+        if self.finished: #if the quiz is finished
+            return #do nothing
+        try: 
+            if self.per_timer_id is not None: #if there is an existing per-question timer
+                self.top.after_cancel(self.per_timer_id) #cancel the existing per-question timer
+        except Exception: # catch any exception to avoid crashes
+            pass # ignore any errors
+        finally: # always execute
+            self.per_timer_id = None #reset the per-question timer ID
+
+        self.index += 1 #increment the question index
+        if self.index >= len(self.order): #if the question index is greater than or equal to the number of questions
+            self.finish() #finish the quiz
+        else: #if there are more questions
+            self.show_item() #show the next question
+            
+    #Handling finishing and closing windows 
+    
+    def finish(self): 
+        """Stop if window closed, completed the quiz, or UI locked (for per question timeout). Calculate score and show results."""
+        if self.finished: #if the quiz is already finished
+            return
+        self.finished = True #mark the quiz as finished
+        self._alive = False #mark the quiz taker window as not alive
+        self.cancel_timers() #cancel both timers
+        
+        # Calculate score and show results using original item order with indexed selections or None for unanswered
+        aligned = [self.sel_by_item_index.get(i, None) for i in range(len(self.quiz.items))] #align selections to original item order
+        score, total, incorrect = self.quiz.execute_quiz(aligned) #execute the quiz
+        ResultsWindow(self.master, self.quiz, score, total, selections=aligned, incorrect=incorrect) #show the results window
+        
+        self.top.destroy() #close the quiz taker window
+
+    def on_close(self): 
+        """Confirm exit and close the quiz taker window safely"""
+        if self.finished: 
+            self._alive = False #mark the quiz taker window as not alive
+            self.cancel_timers() #cancel both timers
+            self.top.destroy() #close the quiz taker window
+            return
+        
+        if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit the quiz? Your progress will be lost."): #ask the user to confirm exit
+            self._alive = False #mark the quiz taker window as not alive
+            self.cancel_timers() #cancel both timers
+            self.top.destroy() #close the quiz taker window
+
+
+# ================================================================================================================
+# CLASS: ResultWindow
+# GUI for displaying quiz results including score and a table of incorrect/skipped answers using treeview widget
+# Safely handles total == 0 case to avoid division by zero
+# ================================================================================================================
+class ResultsWindow:
+    def __init__(self, master, quiz, score, total, selections=None, incorrect=None): #initialize the results window
+        self.top = tk.Toplevel(master) #create a new top-level window
+        self.top.title("Results: " + quiz.title) #set the window title
+        
+        if incorrect is None: #if incorrect answers are not provided
+            if selections is None: #if selections are not provided
+                raise ValueError("Either selections or incorrect answers must be provided") #raise a value error with a statement
+            _, incorrect = quiz.calculate_score(selections) #calculate incorrect answers based on selections
+
+        pct = round((float(score) / float(total)) * 100.0, 1) if total else 0.0 #calculate the percentage score
+        tk.Label(
+            self.top, 
+            text=f"Score: {score}/{total} ({pct:.1f}%)", #display the score
+            font=("TkDefaultFont", 12, "bold")
+            ).pack(padx=10, pady=(10, 6), anchor="w") #pack the score label
+
+        if not incorrect: #if there are no incorrect answers
+            tk.Label(self.top, text="All answers correct!", fg="green").pack(padx=10, pady=(0, 10), anchor="w") #celebrate the perfect score
+        else: #if there are incorrect answers
+            tk.Label(
+                self.top, 
+                text="Incorrect / Skipped Answers:", 
+                fg="red", 
+                font=("TkDefaultFont", 10, "bold")
+                ).pack(padx=10, pady=(0, 6), anchor="w") #display the incorrect answers label
+
+            cols = ("Question", "Your Answer", "Correct Answer") #columns for the treeview
+            tree = ttk.Treeview(self.top, columns=cols, show="headings", height=min(10, len(incorrect))) #create a treeview to display incorrect answers
+            for c in cols: #for each column in the columns list
+                tree.heading(c, text=c) #set the column heading
+                tree.column(c, width=220 if c == "Question" else 180, anchor="w") #set the column width and alignment
+            tree.pack(padx=10, pady=(0, 10), fill="both", expand=True) #pack the treeview in the window
+
+            for row in incorrect: #for each incorrect answer
+                sel = "(Skipped)" if row["selected"] is None else row["selected"] #determine the selected answer text
+                tree.insert("", tk.END, values=(row["question"], sel, row["correct"])) #insert the incorrect answer into the treeview
+                                                                             
+                                                                             
+        tk.Button(self.top, text="Close", command=self.top.destroy).pack(pady=(0, 10)) #create button to close the results window
+
+# ========================================
+# Program Entry Point
+# ========================================
+
+if __name__ == "__main__": #if the program is run directly
+    root = tk.Tk() #create the main window
+    app = QuizApp(root) #create an instance of QuizApp
+    app.refresh_list() #refresh the quiz list
+    root.mainloop() #start the main loop
