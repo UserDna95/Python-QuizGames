@@ -1,6 +1,5 @@
 # Interpretation 
-
-Objective was to design and build a self-contained, GUI-based multiple choice quiz system using the tkinter module. 
+The objective was to design and build a self-contained, GUI-based multiple choice quiz system using the tkinter module. 
 -The system needs to let a user create and manage multipe quizzes. 
 -Add, edit, delete quiz questions. 
 -Take quizzes where questions occurs one after the other instead of all at once. 
@@ -10,8 +9,7 @@ Objective was to design and build a self-contained, GUI-based multiple choice qu
 The focus was on understanding object-oriented programming using encapsulation, and modularity, GUI designing, while effectively handling errors, and input validation. 
 
 # Requirements, Techniques, Algorithms
-
-## Timers
+Timers
 Technique: timers with after() + after_cancel()
 Two types of timers are used in this system to track countdown that tick once per second and update the user interface:
 - Total timer: overall quiz duration
@@ -24,7 +22,7 @@ The rules enforced for this when a quiz starts:
 
 Safety: Timers are cancelled with guards to avoid a TclError when a window is closed, using an _alive flag prevents any callbacks from running after a window is closed (teardown). A _locked flag prevents any double-submissions races between submitting an answer, clicking next, and a timeout. 
 
-## Encapsulation:
+Encapsulation:
 -Quiz_item class: holds one questions, 2-4 unique choices, and the correct answer which is stored as an index (correct_index) and not just a string correct answer. Setters include (set_question, set_choice, set_correct_answer/set_correct_index) and validate updates to ensure the mapping between correct answer and choices under a question are stable, even if choiced are edited. Also, storing the answer as an index avoid desyncing when shuffling or whitespace/case edits. 
 
 -Quiz class: owns the quiz title and list of Quiz_items, allowing users to add an item, display all items (read only), calculate the score (compare selected indices to correct_index), execute a quiz (wrapper that returns a formatted score, total, and incorrect_list).
@@ -33,7 +31,7 @@ Safety: Timers are cancelled with guards to avoid a TclError when a window is cl
 
 -There is a single finish point, finish(), regardless of what occurs during the quiz (timeout, last question, or window closed) so the cleanup and results always remain consistent. 
 
-## Input validation/Error Handling:
+Input validation/Error Handling:
 Quiz_item class:
 -Question validation with no empty string
 -Choice validation set to 2-4, it is trimmed, must cast-insensitive, unique, and all while preserving the original casing/order (how it was first inputted and where when a Quiz_item was added under the Quiz class)
@@ -81,20 +79,20 @@ Return:
 Try-Except-Pass-Finally: 
 -Ensures an action is completed taking a constraint into account. The try portion will fulfill an if statement, then except will handle errors, pass will ignore errors if there are none, and finally will always keep it running. 
 
-## Shuffling
+Shuffling
 -In questions, a shuffled list of question indices creates order when enabled. In choices, for each question screen, a local list of choice indices is built and optionally shuffled. Radio buttons to accept answers use the original indices as their values so that scoring remains correct throughout. 
 
-## Indexing
+Indexing
 -Each Quiz_item is stored in a list which we seperate using indexes, so if the questions are shuffled, because we're using index-matching, it will always map to the correct answer using its index instead of text match (which requires alot more handling than trimming whitespace and casefold). Same thing occurs with choices.
 -self.sel_by_item_index() is an important function that records which choice index was selected for each question in a dictionary, so later when we're grading for correct answers, the aligned() function will line up these indexes with the orginial questions, ensuring that even if questions/choices are shuffled, that the orginal question is cross-referenced to find the correct answer from the choices.
 
-## Flags
+Flags
 -These boolean variables keep track of what is happening like checkpoints that guard that things happen once and in the correct order. In self._alive, the window is still open and running, so timers shouldn't run after they're closed. In self.finished, when the quiz is completed, it stops double results from showing. In self._locked, once the user has submitted an answer for the current questions, this will not allow for resubmitting or changing answers after time runs out. 
 
-## Locking/Unlocking UI
+Locking/Unlocking UI
 -After a user has submitted an answer or the quiz has run out of time (per question timer), the tkinter radiobutton is disabled, unless there are more questions to answer, then it will the keep Next button normal/active to click on, while in the last questions, it will automatically end the quiz. 
 
-## Algorithm
+Algorithm
 1) Import modules tkinter (tk, ttk, simpledialog, messagebox) and random
 2) Construct a class called Quiz_item with question, choices, correct_index (to accept index/matching text). Include setters to validate updates.
 3) Construct Quiz class which is defined by a quiz title attached to the items taken from the Quiz_item class above. Underneath this add methods to add a single item (a quiz with a title, and question sets), display items (display a single quiz with its questions and answers), calculate the score of a single quiz with its index, and execute a single quiz
@@ -109,8 +107,7 @@ Try-Except-Pass-Finally:
 12) For the ResultsWindow class, use ttk.Treeview of incorrect/skipped rows and the over score/percentage to create a tabular presentation of this information 
 
 # Modules, Classes, Functions
-
-## GUI System overview
+GUI System overview
 
 QuizApp (main window)
   ├── QuizEditor (manage questions)
@@ -119,8 +116,7 @@ QuizApp (main window)
   └── QuizTakerWindow (take quiz)
         └── ResultsWindow (final score & breakdown)
 
-## Classes & Functions 
-
+Classes & Functions 
 1) class Quiz_item which represents one multiple choice question
 Attributes: question, choices, correct_index
 Setter Methods/Functions: 
@@ -192,8 +188,7 @@ Attributes: top-level window (opens by itself independently), quiz, score, total
 Functions: 
 -The function is initialized when the quiz is completed and it calculates the percentage, shows a table for the incorrect/skipped questions or None, a perfect score message, and includes a close button to manually close the window 
 
-## Modules
-
+Modules
 Tkinter: 
 -grid for framing inside a Listbox
 -pack for dialogs/smaller windows
@@ -211,8 +206,7 @@ Tkinter:
 Random:
 -random.shuffle() for optional shuffling of questions indices or choice indices 
 
-# User Guide 
-
+User Guide 
 1) Launch this script on your IDE software 
 2) When the file is launched, the first thing shown will be an empty main window with buttons
 2) To create a quiz, click on "create new quiz", then enter a quiz title, and a new quiz will now appear on the main window (you can add multiple quiz titles for different quizzes)
@@ -223,19 +217,18 @@ Random:
 7) During the quiz, each question will appear one by one with the timers running. Click on the circle next to the correct answer and submit it, then click on next question to access the next question. If the per-question timer runs out, it will be recorded as skipped and inputs will be locked, so you must go to the next question. 
 8) Once a quiz is completed, a score and percentage are shown, including incorrect and skipped questions with their correct answers in a table format. 
 
-# Reflection
+Reflection
+Main challenges were figuring out how to coordinate simultaneous timers and cancellation methods for them. But, using the after()/after_cancel() with _alive flag and a single finish() method prevented callback races and crashouts.
 
-Main challenges were figuring out how to coordinate simulataneous timers and cancellation methods for them. But, using the after()/after_cancel() with _alive flag and a single finish() method prevented callback races and crashouts.
-
-Also how to implement shuffling in a non-destructive way for the data led me to store the correct answer as an index instead of text so mapping is not lost. This now eliminated any edge cases with issues around whitespace/casing, and kept the correctedness under shuffling. Simulataneously, even understanding the importance of case sensitivity and exact matching when comparing choices and correct answer was a huge learning curve, especially since the answer is recorded using a Radio Button during the quiz. But, this taught me that the system under the hood needs to handle different cases even if the UI at the top does not. If in the future, I change this quiz to take text-input for correct answers, I am now fully covered to do so. 
+Also, how to implement shuffling in a non-destructive way for the data led me to store the correct answer as an index instead of text, so mapping is not lost. This has now eliminated any edge cases with issues around whitespace/casing, and kept the correctedness under shuffling. Simultaneously, even understanding the importance of case sensitivity and exact matching when comparing choices and cthe orrect answer was a huge learning curve, especially since the answer is recorded using a Radio Button during the quiz. But, this taught me that the system under the hood needs to handle different cases even if the UI at the top does not. If in the future, I change this quiz to take text-input for correct answers, I am now fully covered to do so. 
 
 I had to tighten input validation through multiple reiterations, including auto-adjusting the timers to follow constraints instead of putting in a constraint (ie. min 30 secs for total_timer) and having no follow-up with it. 
 
-Overall, this system is robust based on the validation and error handling methods that I could think of, but it still has a lot of room for further improvements and logic-proofing. Another thing I wanted to include but decided against was data persistence with JSON, instead I choose to add a feature to shuffle answers and questions to make the quiz taking experience more useful for users and their learning.  
+Overall, this system is robust based on the validation and error handling methods that I could think of, but it still has a lot of room for further improvements and logic-proofing. Another thing I will include in future reiterations is data persistence with JSON.
 
 
 """
-What is does: 
+What it does: 
 GUI-based Quiz System that allows users to create, manage, preview, and take multiple-choice quizzes (option to shuffle questions/choices) with timing features
 It uses object-oriented programming principles to encapsulate quiz data and operations within classes, while leveraging tkinter for the graphical user interface.
 """
@@ -248,13 +241,13 @@ import random #random for shuffling questions and choices
 # CLASS: Quiz_item
 # Represents a single multiple-choice question with choices and correct answer stored as an index. 
 # Requires a question text, a minimum of 2 choices with a maximum of 4 choices, and a correct index (or correct text answer that matches one of the choices).
-# Setters validate updates, and corrected answer is maintained by index or text.
+# Setters validate updates, and the corrected answer is maintained by index or text.
 # =============================================================================================================================================================================
 class Quiz_item:
     def __init__(self, question, choices, correct):
         self.question = str(question).strip() #question text
 
-        # Create a a list of unique choices that preserve the original casing and order
+        # Create a list of unique choices that preserve the original casing and order
         raw_choices = [str(c).strip() for c in choices if str(c).strip()] #strip whitespace and convert to string for each choice
         seen = set() #set to hold unique choices
         uniq = [] #list to hold unique choices
